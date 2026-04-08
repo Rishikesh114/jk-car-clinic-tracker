@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JK Car Clinic - Tracker</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h1 { color: #333; text-align: center; }
+        .stat-box { text-align: center; background: #e0f7fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .stat-box h2 { margin: 0; font-size: 3em; color: #00796b; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 4px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
+        button { background-color: #00796b; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #004d40; }
+        ul { list-style-type: none; padding: 0; }
+        li { background: #eee; margin: 5px 0; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between;}
+    </style>
+</head>
+<body>
+
+    <h1>JK Car Clinic</h1>
+
+    <div class="stat-box">
+        <p>Cars Washed Today</p>
+        <h2 id="totalCount">0</h2>
+    </div>
+
+    <div class="card">
+        <form id="logForm">
+            <label>License Plate</label>
+            <input type="text" id="licensePlate" placeholder="e.g. MH 12 AB 1234" required>
+            
+            <label>Wash Type</label>
+            <select id="washType">
+                <option value="Exterior Wash">Exterior Wash</option>
+                <option value="Full Service">Full Service</option>
+                <option value="Interior Detailing">Interior Detailing</option>
+            </select>
+            
+            <label>Payment Method</label>
+            <select id="paymentMethod">
+                <option value="Cash">Cash</option>
+                <option value="UPI">UPI (GPay/PhonePe)</option>
+                <option value="Card">Credit/Debit Card</option>
+            </select>
+            
+            <button type="submit">Log Vehicle</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>Today's Logs</h3>
+        <ul id="logList"></ul>
+    </div>
+
+    <div class="card" style="text-align: center; background-color: #e3f2fd;">
+        <h3>Data Management</h3>
+        <p style="color: #555; font-size: 14px;">Download a complete backup of all vehicle records to view in Excel or Google Sheets.</p>
+        <button id="exportBtn" style="background-color: #1976d2; width: auto; padding: 12px 24px;">📥 Download Complete History (CSV)</button>
+    </div>
+
+    <script>
+        const API_URL = '/api';
+
+        // Fetch and display stats
+        async function fetchStats() {
+            const response = await fetch(`${API_URL}/stats`);
+            const data = await response.json();
+            
+            document.getElementById('totalCount').innerText = data.totalToday;
+            
+            const logList = document.getElementById('logList');
+            logList.innerHTML = ''; 
+            data.recentLogs.forEach(log => {
+                const li = document.createElement('li');
+                // Displaying the payment method next to the wash type
+                li.innerHTML = `<strong>${log.license_plate}</strong> <span>${log.wash_type} (${log.payment_method})</span>`;
+                logList.appendChild(li);
+            });
+        }
+
+        // Handle form submission
+        document.getElementById('logForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            
+            const plate = document.getElementById('licensePlate').value;
+            const type = document.getElementById('washType').value;
+            const payment = document.getElementById('paymentMethod').value;
+
+            await fetch(`${API_URL}/log`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ license_plate: plate, wash_type: type, payment_method: payment }) 
+            });
+
+            document.getElementById('licensePlate').value = ''; 
+            fetchStats(); 
+        });
+
+        // Handle CSV Download
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            window.location.href = `${API_URL}/export`;
+        });
+
+        // Load stats on page open
+        fetchStats();
+    </script>
+</body>
+</html>
