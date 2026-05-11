@@ -1,0 +1,17 @@
+{
+  "name": "JK Car Clinic Tracker",
+  "short_name": "Car Clinic",
+  "description": "Vehicle log and tracking system for JK Car Clinic.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#00796b",
+  "icons": [
+    {
+      "src": "icons/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

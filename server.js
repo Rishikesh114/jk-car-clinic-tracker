@@ -28,6 +28,7 @@ const db = new sqlite3.Database('./carclinic.db', (err) => {
 db.run(`CREATE TABLE IF NOT EXISTS logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     license_plate TEXT NOT NULL,
+    phone_number TEXT, 
     wash_type TEXT NOT NULL,
     payment_method TEXT NOT NULL, 
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -35,10 +36,11 @@ db.run(`CREATE TABLE IF NOT EXISTS logs (
 
 // API ENDPOINT 1: Log a new vehicle
 app.post('/api/log', (req, res) => {
-    const { license_plate, wash_type, payment_method } = req.body;
-    const query = `INSERT INTO logs (license_plate, wash_type, payment_method) VALUES (?, ?, ?)`;
+    // Grab phone_number from the incoming request
+    const { license_plate, phone_number, wash_type, payment_method } = req.body;
+    const query = `INSERT INTO logs (license_plate, phone_number, wash_type, payment_method) VALUES (?, ?, ?, ?)`;
     
-    db.run(query, [license_plate, wash_type, payment_method], function(err) {
+    db.run(query, [license_plate, phone_number, wash_type, payment_method], function(err) {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: "Vehicle logged successfully!", id: this.lastID });
     });
@@ -69,6 +71,23 @@ app.get('/api/export', (req, res) => {
         res.header('Content-Type', 'text/csv');
         res.header('Content-Disposition', 'attachment; filename="jk_car_clinic_history.csv"');
         res.send(csv);
+    });
+});
+
+// API ENDPOINT 4: Get Frequent Cars (Loyalty Tracking)
+app.get('/api/frequent', (req, res) => {
+    // We use MAX(phone_number) to grab the most recent phone number given for that plate
+    const query = `
+        SELECT license_plate, MAX(phone_number) as phone, COUNT(*) as visit_count 
+        FROM logs 
+        GROUP BY license_plate 
+        ORDER BY visit_count DESC 
+        LIMIT 5
+    `;
+    
+    db.all(query, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
     });
 });
 
