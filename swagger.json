@@ -1,0 +1,176 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "JK Car Clinic Tracker API",
+    "description": "RESTful API documentation for JK Car Clinic vehicle logging, analytics, and loyalty management system.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "JK Car Clinic Support",
+      "email": "support@jkcarclinic.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local Development Server"
+    },
+    {
+      "url": "/",
+      "description": "Current Environment Server"
+    }
+  ],
+  "paths": {
+    "/api/log": {
+      "post": {
+        "summary": "Log a new vehicle wash",
+        "description": "Creates a new vehicle log entry with license plate, optional phone number, wash type, and payment method.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Vehicle logged successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Vehicle logged successfully!" },
+                    "id": { "type": "integer", "example": 1 }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing required fields"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/stats": {
+      "get": {
+        "summary": "Get today's statistics and recent logs",
+        "description": "Returns the count of vehicles washed today along with detailed log records for today.",
+        "responses": {
+          "200": {
+            "description": "Today's statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalToday": { "type": "integer", "example": 12 },
+                    "recentLogs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LogEntry"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/frequent": {
+      "get": {
+        "summary": "Get top frequent customers (Loyalty leaderboard)",
+        "description": "Returns top 5 vehicles ranked by visit count for loyalty outreach.",
+        "responses": {
+          "200": {
+            "description": "Frequent customer data retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "license_plate": { "type": "string", "example": "MH 12 AB 1234" },
+                      "phone": { "type": "string", "example": "9876543210" },
+                      "visit_count": { "type": "integer", "example": 5 }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/export": {
+      "get": {
+        "summary": "Export vehicle history to CSV",
+        "description": "Downloads complete history of vehicle logs as a CSV file.",
+        "responses": {
+          "200": {
+            "description": "CSV file download",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "LogInput": {
+        "type": "object",
+        "required": ["license_plate", "wash_type", "payment_method"],
+        "properties": {
+          "license_plate": { "type": "string", "example": "MH 12 AB 1234" },
+          "phone_number": { "type": "string", "example": "9876543210" },
+          "wash_type": { 
+            "type": "string", 
+            "enum": ["Exterior Wash", "Full Service", "Interior Detailing"],
+            "example": "Full Service" 
+          },
+          "payment_method": { 
+            "type": "string", 
+            "enum": ["Cash", "UPI", "Card"],
+            "example": "UPI" 
+          }
+        }
+      },
+      "LogEntry": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "license_plate": { "type": "string", "example": "MH 12 AB 1234" },
+          "phone_number": { "type": "string", "example": "9876543210" },
+          "wash_type": { "type": "string", "example": "Full Service" },
+          "payment_method": { "type": "string", "example": "UPI" },
+          "timestamp": { "type": "string", "example": "2026-09-24 10:30:00" }
+        }
+      }
+    }
+  }
+}

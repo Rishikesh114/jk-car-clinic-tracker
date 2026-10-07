@@ -2,29 +2,35 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger.json');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const DB_PATH = process.env.DB_PATH || './carclinic.db';
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Share the folder so phones and the PC can see the files
+// Serve static frontend files
 app.use(express.static(__dirname));
 
-// Explicit fallback: If someone goes to the main address, show them the dashboard
+// Swagger OpenAPI Documentation UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+// Explicit fallback: Dashboard
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Database Setup
-const db = new sqlite3.Database('./carclinic.db', (err) => {
-    if (err) console.error("Database error:", err.message);
-    else console.log("Connected to the SQLite database.");
+const db = new sqlite3.Database(DB_PATH, (err) => {
+    if (err) console.error("Database connection error:", err.message);
+    else console.log(`Connected to SQLite database at ${DB_PATH}`);
 });
 
-// Create Table (NOW WITH PAYMENT METHOD)
+// Initialize database schema
 db.run(`CREATE TABLE IF NOT EXISTS logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     license_plate TEXT NOT NULL,
@@ -36,13 +42,17 @@ db.run(`CREATE TABLE IF NOT EXISTS logs (
 
 // API ENDPOINT 1: Log a new vehicle
 app.post('/api/log', (req, res) => {
-    // Grab phone_number from the incoming request
     const { license_plate, phone_number, wash_type, payment_method } = req.body;
+    
+    if (!license_plate || !wash_type || !payment_method) {
+        return res.status(400).json({ error: "license_plate, wash_type, and payment_method are required." });
+    }
+
     const query = `INSERT INTO logs (license_plate, phone_number, wash_type, payment_method) VALUES (?, ?, ?, ?)`;
     
-    db.run(query, [license_plate, phone_number, wash_type, payment_method], function(err) {
+    db.run(query, [license_plate, phone_number || '', wash_type, payment_method], function(err) {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: "Vehicle logged successfully!", id: this.lastID });
+        res.status(200).json({ message: "Vehicle logged successfully!", id: this.lastID });
     });
 });
 
@@ -76,7 +86,6 @@ app.get('/api/export', (req, res) => {
 
 // API ENDPOINT 4: Get Frequent Cars (Loyalty Tracking)
 app.get('/api/frequent', (req, res) => {
-    // We use MAX(phone_number) to grab the most recent phone number given for that plate
     const query = `
         SELECT license_plate, MAX(phone_number) as phone, COUNT(*) as visit_count 
         FROM logs 
@@ -91,7 +100,12 @@ app.get('/api/frequent', (req, res) => {
     });
 });
 
-// Start Server
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+// Start Server if executed directly
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server is running on http://localhost:${PORT}`);
+        console.log(`Swagger Docs available at http://localhost:${PORT}/api-docs`);
+    });
+}
+
+module.exports = { app, db };
